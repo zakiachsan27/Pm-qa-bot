@@ -1,0 +1,17 @@
+{
+  "name": "bapenda-pm-bot",
+  "version": "1.0.0",
+  "description": "Bapenda PM Daily Report Bot - Weekly status report per aplikasi untuk Pimpinan",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js --cron",
+    "test-sheets": "node index.js --test-sheets",
+    "test-waha": "node index.js --test-waha",
+    "send-now": "node index.js --send-now"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "node-cron": "^3.0.3"
+  }
+}
