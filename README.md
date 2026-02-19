@@ -1,57 +1,64 @@
-# Bapenda Notification Bots
+# Bapenda PM Weekly Report Bot
 
-Bot notifikasi WhatsApp untuk Bapenda DKI Jakarta.
+Bot untuk mengirim weekly status report per aplikasi ke WhatsApp group untuk Pimpinan/PM.
 
-## Bots
+## Data Source
 
-### 1. QA Bot (`qa-bot/`)
-Daily report untuk tim QA - status task QA testing.
+Google Sheet: Bapenda TU Incident Tracker
+- Sheet ID: `1yGPwlS_H5bOuICYaSVDj6TU-gdUvatRhR-WXiTNayfM`
+- Tab: Dashboard (row 42+) - STATUS COMPARISON
+- Tab: Current - Task details
 
-- **Schedule:** Senin-Jumat, 08:00 WIB
-- **Data Source:** Google Sheet QA Tracker
-- **Target:** Group WhatsApp QA
+Data di-sync dari web ke Google Sheet via Chrome Extension.
 
-### 2. PM Bot (`pm-bot/`)
-Weekly report untuk Pimpinan - status per aplikasi.
+## Report Format
 
-- **Schedule:** Manual (belum diaktifkan)
-- **Data Source:** Google Sheet TU Incident Tracker
-- **Target:** Group WhatsApp Pimpinan
+Report menampilkan per aplikasi:
+1. **Status Comparison** - Jumlah task per status (Now vs 7 hari lalu)
+2. **Task Names** - Daftar task yang sedang On Progress
 
-## Tech Stack
+Contoh output:
+```
+📊 WEEKLY STATUS REPORT
+Rabu, 18 Februari 2026
+Perbandingan vs 7 hari lalu
 
-- Node.js
-- Google Sheets API (public URL method)
-- WAHA (WhatsApp HTTP API)
-- node-cron
+━━━━━━━━━━━━━━━━━━━━
+📱 Pajak Online
+Total: 135 (+919)
+
+📊 Status Minggu Ini:
+• On Progress: 21 (+74)
+• Ready to Test: 9 (+34)
+• On Testing: 3 (+10)
+• Ready to Deploy: 102
+
+🔧 On Progress:
+• [3601] Ubah pengecekan skpd...
+• [3513] Tambahkan di ref_param...
++15 lainnya
+
+...
+
+📈 TOTAL SEMUA APP
+Total Task: 1045 (+3408)
+On Progress: 63 (+213)
+Ready to Test: 80 (+280)
+On Testing: 16 (+52)
+Ready to Deploy: 469
+```
 
 ## Setup
 
-### Prerequisites
-- Node.js v18+
-- WAHA server running
-- Google Sheets dengan akses public
+1. Copy `.env.example` ke `.env`
+2. Configure WhatsApp group IDs di `WA_GROUP_IDS`
+3. Install dependencies: `npm install`
+4. Test: `npm run test-sheets`
 
-### Installation
-
-```bash
-# QA Bot
-cd qa-bot
-cp .env.example .env
-# Edit .env dengan credentials
-npm install
-
-# PM Bot
-cd pm-bot
-cp .env.example .env
-# Edit .env dengan credentials
-npm install
-```
-
-### Running
+## Usage
 
 ```bash
-# Test sheets connection
+# Test Google Sheets connection
 npm run test-sheets
 
 # Test WAHA connection
@@ -60,43 +67,22 @@ npm run test-waha
 # Send report now
 npm run send-now
 
-# Start cron job
+# Start cron job (default: Monday 08:00 WIB)
 npm start
 ```
 
-## Deployment
+## Cron Schedule
 
-Menggunakan systemd service. Contoh untuk qa-bot:
+Default: `0 8 * * 1` (Every Monday 8 AM WIB)
 
-```bash
-sudo cp qa-bot/bapenda-qa-bot.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable bapenda-qa-bot
-sudo systemctl start bapenda-qa-bot
+Ubah di `.env`:
+```
+REPORT_CRON=0 8 * * 1
 ```
 
-## Project Structure
+## Related Projects
 
-```
-Pm-qa-bot/
-├── qa-bot/
-│   ├── index.js
-│   ├── package.json
-│   ├── .env.example
-│   └── src/
-│       ├── sheets.js    # Google Sheets service
-│       ├── report.js    # QA report generator
-│       └── waha.js      # WhatsApp service
-├── pm-bot/
-│   ├── index.js
-│   ├── package.json
-│   ├── .env.example
-│   └── src/
-│       ├── sheets.js    # Google Sheets service
-│       ├── report.js    # PM report generator
-│       └── waha.js      # WhatsApp service
-└── README.md
-```
+- `bapenda-qa-bot` - Daily QA report untuk tim QA
 
 ## Author
 
