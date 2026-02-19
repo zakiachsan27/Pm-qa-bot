@@ -49,7 +49,7 @@ function randomDelay() {
 }
 
 // Test group ID
-const TEST_GROUP = '120363422153782210@g.us';
+const TEST_GROUP = '120363217947536346@g.us';
 
 /**
  * Get bot's phone number and LID from WAHA
