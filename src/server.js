@@ -48,7 +48,12 @@ function randomDelay() {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Test group ID
+// Allowed groups (bot only responds in these groups)
+const ALLOWED_GROUPS = [
+  '120363217947536346@g.us',  // PM - SA- SISDA (production)
+];
+
+// Legacy constant for compatibility
 const TEST_GROUP = '120363217947536346@g.us';
 
 /**
@@ -343,6 +348,12 @@ async function handleMessage(message) {
   
   const chatId = message.from;
   const body = message.body || '';
+  
+  // Only respond in allowed groups
+  if (!ALLOWED_GROUPS.includes(chatId)) {
+    console.log(`[${new Date().toISOString()}] Skipping message from non-allowed group: ${chatId}`);
+    return;
+  }
   
   // Skip non-task-related messages (meeting invites, greetings, etc.)
   if (!isTaskRelated(body)) {
