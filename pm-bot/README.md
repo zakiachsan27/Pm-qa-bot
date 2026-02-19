@@ -1,88 +1,118 @@
 # Bapenda PM Weekly Report Bot
 
-Bot untuk mengirim weekly status report per aplikasi ke WhatsApp group untuk Pimpinan/PM.
+Bot untuk mengirim weekly status report per modul ke WhatsApp group untuk Pimpinan/PM.
+Dilengkapi fitur interaktif - user bisa tanya detail task dengan mention di grup.
+
+## Features
+
+### 1. Weekly Report (Otomatis)
+- Dikirim setiap Senin pagi
+- Menampilkan task baru minggu lalu per modul
+- Format: App - Module + status
+
+### 2. Interactive Q&A
+- User mention nomor di grup untuk tanya
+- Bot jawab dengan random delay (10-60 detik) + typing indicator
+- Kalau hasil terlalu banyak (>10), tampilkan counter dulu lalu tanya mau breakdown yang mana
 
 ## Data Source
 
 Google Sheet: Bapenda TU Incident Tracker
 - Sheet ID: `1yGPwlS_H5bOuICYaSVDj6TU-gdUvatRhR-WXiTNayfM`
-- Tab: Dashboard (row 42+) - STATUS COMPARISON
-- Tab: Current - Task details
-
-Data di-sync dari web ke Google Sheet via Chrome Extension.
-
-## Report Format
-
-Report menampilkan per aplikasi:
-1. **Status Comparison** - Jumlah task per status (Now vs 7 hari lalu)
-2. **Task Names** - Daftar task yang sedang On Progress
-
-Contoh output:
-```
-📊 WEEKLY STATUS REPORT
-Rabu, 18 Februari 2026
-Perbandingan vs 7 hari lalu
-
-━━━━━━━━━━━━━━━━━━━━
-📱 Pajak Online
-Total: 135 (+919)
-
-📊 Status Minggu Ini:
-• On Progress: 21 (+74)
-• Ready to Test: 9 (+34)
-• On Testing: 3 (+10)
-• Ready to Deploy: 102
-
-🔧 On Progress:
-• [3601] Ubah pengecekan skpd...
-• [3513] Tambahkan di ref_param...
-+15 lainnya
-
-...
-
-📈 TOTAL SEMUA APP
-Total Task: 1045 (+3408)
-On Progress: 63 (+213)
-Ready to Test: 80 (+280)
-On Testing: 16 (+52)
-Ready to Deploy: 469
-```
+- Tab: Dashboard > NEW TASKS LAST WEEK
+- Tab: Current (untuk detail task)
 
 ## Setup
 
-1. Copy `.env.example` ke `.env`
-2. Configure WhatsApp group IDs di `WA_GROUP_IDS`
-3. Install dependencies: `npm install`
-4. Test: `npm run test-sheets`
+### 1. Install Dependencies
+```bash
+npm install
+```
+
+### 2. Configure Environment
+```bash
+cp .env.example .env
+# Edit .env:
+# - WA_GROUP_IDS: ID grup WhatsApp
+# - MENTION_NUMBER: Nomor yang akan di-mention (tanpa +)
+# - REPORT_CRON: Schedule weekly report (default: Senin 08:00)
+```
+
+### 3. Configure WAHA Webhook
+Di WAHA, set webhook URL ke:
+```
+http://your-server:3002/webhook
+```
 
 ## Usage
 
+### Start Server (Recommended)
 ```bash
-# Test Google Sheets connection
-npm run test-sheets
-
-# Test WAHA connection
-npm run test-waha
-
-# Send report now
-npm run send-now
-
-# Start cron job (default: Monday 08:00 WIB)
 npm start
+# atau
+node index.js --server
+```
+Server akan:
+- Listen webhook di port 3002
+- Jalankan cron weekly report
+
+### Other Commands
+```bash
+npm run test-sheets   # Test & preview report
+npm run test-waha     # Test WAHA connection
+npm run send-now      # Send report immediately
+npm run cron          # Weekly report only (no interactive)
 ```
 
-## Cron Schedule
+## Interactive Commands
 
-Default: `0 8 * * 1` (Every Monday 8 AM WIB)
+User bisa mention di grup dengan format:
+- `@628xxx detail ERET / ROS` - Detail semua task di app
+- `@628xxx detail CoreTax - BPHTB - Penagihan` - Detail task di module tertentu
+- `@628xxx status Pajak Online` - Status task di app
 
-Ubah di `.env`:
+### Smart Response
+- Jika hasil ≤10 task: Tampilkan detail langsung
+- Jika hasil >10 task: Tampilkan counter per status, tanya mau breakdown yang mana
+
+## Weekly Report Format
+
 ```
-REPORT_CRON=0 8 * * 1
+📊 WEEKLY PROGRESS REPORT
+Senin, 24 Februari 2026
+Periode: 17 Feb 2026 - 24 Feb 2026
+
+📈 RINGKASAN MINGGU INI
+Total Task Baru: 7
+• On Progress: 1
+• Ready to Test: 1
+• Ready to Deploy: 4
+
+━━━━━━━━━━━━━━━━━━━━
+📱 DETAIL PER MODUL
+
+• CoreTax - BPHTB - Penagihan
+  On Testing: 1
+
+• ERET / ROS - Kompensasi
+  Ready to Deploy: 1
+
+...
 ```
 
-## Related Projects
+## Deployment
 
-- `bapenda-qa-bot` - Daily QA report untuk tim QA
+### Systemd Service
+```bash
+sudo cp bapenda-pm-bot.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable bapenda-pm-bot
+sudo systemctl start bapenda-pm-bot
+```
+
+## Related
+
+- `../qa-bot/` - Daily QA report untuk tim QA
 
 ## Author
 
