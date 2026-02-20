@@ -139,7 +139,13 @@ ATURAN KETAT:
 3. Jangan mention modul lain yang tidak ditanyakan
 4. Format WhatsApp: *bold*, _italic_
 5. Jawab singkat dan fokus
-6. Jika tidak ada data, bilang "Tidak ada task di modul tersebut"`;
+6. Jika tidak ada data, bilang "Tidak ada task di modul tersebut"
+
+INFORMASI DEADLINE:
+- Setiap task punya field "Deadline" (tanggal jatuh tempo)
+- Task dengan [OVERDUE] artinya sudah melewati deadline
+- Jika ditanya tentang deadline/overdue, tampilkan tanggal deadline dan status overdue
+- Contoh format: "[3621] Task ABC - deadline 18 Feb *OVERDUE*"`;
 
     const messages = [
       { role: 'user', content: question }

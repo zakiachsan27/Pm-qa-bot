@@ -162,7 +162,10 @@ function isTaskRelated(body) {
     'eret', 'ros', 'pajak', 'pendataan', 'penetapan',
     'penagihan', 'pelayanan', 'verifikasi', 'sspd',
     'help', 'bantuan', 'ada berapa', 'siapa', 'apa saja',
-    'list', 'daftar', 'nomor', 'id'
+    'list', 'daftar', 'nomor', 'id',
+    // Deadline-related keywords
+    'deadline', 'overdue', 'jatuh tempo', 'tenggat', 'batas waktu',
+    'terlambat', 'telat', 'lewat', 'expired', 'due date'
   ];
   
   return taskKeywords.some(keyword => lower.includes(keyword));
@@ -197,10 +200,33 @@ function parseCommand(body) {
 }
 
 /**
+ * Parse date from Google Sheets format
+ */
+function parseSheetDate(raw) {
+  if (!raw) return null;
+  
+  if (typeof raw === 'string' && raw.startsWith('Date(')) {
+    const match = raw.match(/Date\((\d+),(\d+),(\d+)/);
+    if (match) {
+      return new Date(parseInt(match[1]), parseInt(match[2]), parseInt(match[3]));
+    }
+  }
+  
+  const d = new Date(raw);
+  if (!isNaN(d.getTime())) return d;
+  
+  return null;
+}
+
+/**
  * Get task data context for AI - includes ALL tasks from Current sheet
+ * Now includes deadline (Estimated Date) and overdue status
  */
 async function getTaskContext() {
   try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     // Get new tasks summary from Dashboard (row 576+)
     const newTasksData = await sheets.getNewTasksLastWeek();
     
@@ -215,8 +241,11 @@ async function getTaskContext() {
     });
     
     context += `\n=== SEMUA TASK AKTIF ===\n`;
+    context += `Format: [ID] App > Module | Deskripsi | PIC | Status | Deadline | Overdue?\n\n`;
     
     let count = 0;
+    let overdueCount = 0;
+    
     rows.forEach(row => {
       if (count >= 150) return; // Limit to avoid token overflow
       
@@ -225,17 +254,33 @@ async function getTaskContext() {
       const app = c[1]?.v || '';
       const module = c[2]?.v || '';
       const desc = (c[3]?.v || '').substring(0, 50).replace(/\n/g, ' ');
+      const deadlineRaw = c[6]?.v;
       const pic = c[8]?.v || '';
       const status = c[12]?.v || '';
       const resolved = c[11]?.v === true;
       
       if (!id || resolved) return;
       
-      context += `[${id}] ${app} > ${module} | ${desc} | PIC: ${pic} | Status: ${status}\n`;
+      // Parse deadline
+      const deadline = parseSheetDate(deadlineRaw);
+      let deadlineStr = '-';
+      let isOverdue = false;
+      
+      if (deadline) {
+        deadlineStr = deadline.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        if (deadline < today) {
+          isOverdue = true;
+          overdueCount++;
+        }
+      }
+      
+      const overdueMarker = isOverdue ? ' [OVERDUE]' : '';
+      context += `[${id}] ${app} > ${module} | ${desc} | PIC: ${pic} | Status: ${status} | Deadline: ${deadlineStr}${overdueMarker}\n`;
       count++;
     });
     
-    context += `\nTotal task aktif ditampilkan: ${count}\n`;
+    context += `\nTotal task aktif: ${count}\n`;
+    context += `Task overdue: ${overdueCount}\n`;
     
     return context;
   } catch (e) {
