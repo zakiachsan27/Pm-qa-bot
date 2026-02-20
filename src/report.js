@@ -126,9 +126,14 @@ class ReportGenerator {
       report += `\n`;
     });
 
-    // Collect overdue tasks
+    // Collect overdue tasks (only from NEW tasks this week, not all history)
     const overdueTasks = [];
+    const newTaskKeys = new Set(this.tasks.map(t => `${t.app}|${t.module}`));
+    
     Object.entries(this.taskDetails).forEach(([key, tasks]) => {
+      // Only check modules that have new tasks this week
+      if (!newTaskKeys.has(key)) return;
+      
       tasks.forEach(t => {
         if (t.isOverdue && !t.resolved) {
           const [app, module] = key.split('|');
@@ -151,11 +156,14 @@ class ReportGenerator {
     if (totalTesting > 0) report += `• On Testing: ${totalTesting}\n`;
     if (totalDeploy > 0) report += `• Ready to Deploy: ${totalDeploy}\n`;
 
-    // Overdue section
+    // Overdue section (only show recent ones - max 3 per app)
     if (overdueTasks.length > 0) {
+      // Sort by deadline (most recent first)
+      overdueTasks.sort((a, b) => b.deadline - a.deadline);
+      
       report += `\n`;
       report += `━━━━━━━━━━━━━━━━━━━━\n`;
-      report += `⚠️ *OVERDUE TASKS* (${overdueTasks.length})\n\n`;
+      report += `⚠️ *OVERDUE TASKS* (${overdueTasks.length} total)\n\n`;
       
       // Group by app
       const byApp = {};
@@ -165,11 +173,15 @@ class ReportGenerator {
       });
       
       Object.entries(byApp).forEach(([app, tasks]) => {
-        report += `📱 *${app}*\n`;
-        tasks.forEach(t => {
+        report += `📱 *${app}* (${tasks.length} overdue)\n`;
+        // Show max 3 per app (most recent first)
+        tasks.slice(0, 3).forEach(t => {
           const dl = t.deadline.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
           report += `• [${t.id}] ${t.desc} - deadline ${dl}\n`;
         });
+        if (tasks.length > 3) {
+          report += `  _...dan ${tasks.length - 3} task lainnya_\n`;
+        }
         report += `\n`;
       });
     } else {
