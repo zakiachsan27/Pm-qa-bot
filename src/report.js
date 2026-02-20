@@ -108,12 +108,33 @@ class ReportGenerator {
           const innerPrefix = isLast ? '   ' : '│  ';
           relevantTasks.forEach(t => {
             const doneMarker = t.resolved ? ' ✓' : '';
-            report += `${innerPrefix}• [${t.id}] ${t.desc}${doneMarker}\n`;
+            // Show overdue indicator and deadline
+            let deadlineStr = '';
+            if (t.deadline) {
+              const dl = t.deadline.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+              if (t.isOverdue) {
+                deadlineStr = ` ⚠️ *OVERDUE* (${dl})`;
+              } else {
+                deadlineStr = ` 📅 ${dl}`;
+              }
+            }
+            report += `${innerPrefix}• [${t.id}] ${t.desc}${doneMarker}${deadlineStr}\n`;
           });
         }
       });
       
       report += `\n`;
+    });
+
+    // Collect overdue tasks
+    const overdueTasks = [];
+    Object.entries(this.taskDetails).forEach(([key, tasks]) => {
+      tasks.forEach(t => {
+        if (t.isOverdue && !t.resolved) {
+          const [app, module] = key.split('|');
+          overdueTasks.push({ ...t, app, module });
+        }
+      });
     });
 
     // Summary
@@ -129,6 +150,31 @@ class ReportGenerator {
     if (totalTest > 0) report += `• Ready to Test: ${totalTest}\n`;
     if (totalTesting > 0) report += `• On Testing: ${totalTesting}\n`;
     if (totalDeploy > 0) report += `• Ready to Deploy: ${totalDeploy}\n`;
+
+    // Overdue section
+    if (overdueTasks.length > 0) {
+      report += `\n`;
+      report += `━━━━━━━━━━━━━━━━━━━━\n`;
+      report += `⚠️ *OVERDUE TASKS* (${overdueTasks.length})\n\n`;
+      
+      // Group by app
+      const byApp = {};
+      overdueTasks.forEach(t => {
+        if (!byApp[t.app]) byApp[t.app] = [];
+        byApp[t.app].push(t);
+      });
+      
+      Object.entries(byApp).forEach(([app, tasks]) => {
+        report += `📱 *${app}*\n`;
+        tasks.forEach(t => {
+          const dl = t.deadline.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+          report += `• [${t.id}] ${t.desc} - deadline ${dl}\n`;
+        });
+        report += `\n`;
+      });
+    } else {
+      report += `\n✅ _Tidak ada task overdue._\n`;
+    }
 
     // Add status changes section if any
     if (this.statusChanges.length > 0) {

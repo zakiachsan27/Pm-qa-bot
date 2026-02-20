@@ -83,13 +83,37 @@ class SheetsService {
   }
 
   /**
+   * Parse date from Google Sheets format
+   * Handles: Date(year,month,day), "YYYY-MM-DD", or null
+   */
+  parseDate(raw) {
+    if (!raw) return null;
+    
+    if (typeof raw === 'string' && raw.startsWith('Date(')) {
+      const match = raw.match(/Date\((\d+),(\d+),(\d+)/);
+      if (match) {
+        return new Date(parseInt(match[1]), parseInt(match[2]), parseInt(match[3]));
+      }
+    }
+    
+    // Try parsing as date string
+    const d = new Date(raw);
+    if (!isNaN(d.getTime())) return d;
+    
+    return null;
+  }
+
+  /**
    * Get task details from Current sheet for specific tasks
+   * Includes deadline (Estimated Date) for overdue detection
    */
   async getTaskDetails(appModulePairs) {
     const data = await this.fetchSheet('Current');
     const rows = data.table.rows;
     
     const details = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
     rows.forEach(row => {
       const c = row.c || [];
@@ -100,13 +124,30 @@ class SheetsService {
       const status = c[12]?.v || '';
       const resolved = c[11]?.v === true;
       
+      // Parse deadline (Estimated Date - column 6)
+      const deadlineRaw = c[6]?.v;
+      const deadline = this.parseDate(deadlineRaw);
+      
+      // Check if overdue (deadline passed and not resolved)
+      let isOverdue = false;
+      if (deadline && !resolved && deadline < today) {
+        isOverdue = true;
+      }
+      
       if (!id || !app) return;
       
       // Check if this task belongs to one of the new tasks
       const key = `${app}|${module}`;
       if (!details[key]) details[key] = [];
       
-      details[key].push({ id, desc, status, resolved });
+      details[key].push({ 
+        id, 
+        desc, 
+        status, 
+        resolved,
+        deadline,
+        isOverdue
+      });
     });
     
     return details;
